@@ -734,7 +734,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         const url = `https://api.runpod.ai/v2/${config.endpointId}/runsync`
 
         // Build the request body
-        let body: any = {
+        const body = {
             input: {
                 prompt: genPrompt,
                 negative_prompt: neg,
@@ -744,30 +744,26 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 guidance_scale: config.guidance_scale,
                 scheduler: config.scheduler,
                 seed: config.seed_mode === 'random' ? null : config.seed,
-                num_images: config.num_images
-            }
-        }
-
-        // Add LoRA if enabled
-        if(config.lora_enabled && config.loras.length > 0){
-            body.input.loras = config.loras.map(lora => ({
-                name: lora.name || undefined,
-                path: lora.path,
-                scale: lora.scale
-            }))
-        }
-
-        // Add face detailer if enabled
-        if(config.face_detailer_enabled){
-            body.input.face_detailer = {
-                strength: config.face_detailer.strength,
-                confidence: config.face_detailer.confidence,
-                padding: config.face_detailer.padding,
-                guidance_scale: config.face_detailer.guidance_scale,
-                num_inference_steps: config.face_detailer.num_inference_steps,
-                blur_sigma: config.face_detailer.blur_sigma,
-                resolution: config.face_detailer.resolution,
-                min_face_size: config.face_detailer.min_face_size
+                num_images: config.num_images,
+                ...(config.lora_enabled && config.loras.length > 0 && {
+                    loras: config.loras.map(lora => ({
+                        ...(lora.name && { name: lora.name }),
+                        path: lora.path,
+                        scale: lora.scale
+                    }))
+                }),
+                ...(config.face_detailer_enabled && {
+                    face_detailer: {
+                        strength: config.face_detailer.strength,
+                        confidence: config.face_detailer.confidence,
+                        padding: config.face_detailer.padding,
+                        guidance_scale: config.face_detailer.guidance_scale,
+                        num_inference_steps: config.face_detailer.num_inference_steps,
+                        blur_sigma: config.face_detailer.blur_sigma,
+                        resolution: config.face_detailer.resolution,
+                        min_face_size: config.face_detailer.min_face_size
+                    }
+                })
             }
         }
 
