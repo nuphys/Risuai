@@ -720,5 +720,94 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         const mimeType = res.data?.predictions?.[0]?.mimeType || 'image/png'
         return `data:${mimeType};base64,${img64}`
     }
+    if(db.sdProvider === 'runpod'){
+        const config = db.runpodConfig
+        if(!config.endpointId){
+            alertError("RunPod Endpoint ID is not set in settings.")
+            return false
+        }
+        if(!config.apiKey){
+            alertError("RunPod API Key is not set in settings.")
+            return false
+        }
+
+        const url = `https://api.runpod.ai/v2/${config.endpointId}/runsync`
+
+        // Build the request body
+        const body = {
+            input: {
+                prompt: genPrompt,
+                negative_prompt: neg,
+                width: config.width,
+                height: config.height,
+                num_inference_steps: config.num_inference_steps,
+                guidance_scale: config.guidance_scale,
+                scheduler: config.scheduler,
+                seed: config.seed_mode === 'random' ? null : config.seed,
+                num_images: config.num_images,
+                ...(config.lora_enabled && config.loras.length > 0 && {
+                    loras: config.loras.map(lora => ({
+                        ...(lora.name && { name: lora.name }),
+                        path: lora.path,
+                        scale: lora.scale
+                    }))
+                }),
+                ...(config.face_detailer_enabled && {
+                    face_detailer: {
+                        strength: config.face_detailer.strength,
+                        confidence: config.face_detailer.confidence,
+                        padding: config.face_detailer.padding,
+                        guidance_scale: config.face_detailer.guidance_scale,
+                        num_inference_steps: config.face_detailer.num_inference_steps,
+                        blur_sigma: config.face_detailer.blur_sigma,
+                        resolution: config.face_detailer.resolution,
+                        min_face_size: config.face_detailer.min_face_size
+                    }
+                })
+            }
+        }
+
+        try {
+            const res = await globalFetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${config.apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                method: 'POST',
+                body: body
+            })
+
+            if(!res.ok){
+                alertError(JSON.stringify(res.data))
+                return false
+            }
+
+            // Extract image from response
+            // RunPod runsync returns: { id, status, output: { images: [base64, ...] } }
+            const images = res.data?.output?.images
+            if(!images || !Array.isArray(images) || images.length === 0){
+                alertError("No images in RunPod response: " + JSON.stringify(res.data))
+                return false
+            }
+
+            const img64 = images[0]
+
+            if(returnSdData === 'inlay'){
+                return `data:image/png;base64,${img64}`
+            }
+            else{
+                let charemotions = get(CharEmotion)
+                const img = `data:image/png;base64,${img64}`
+                const emos:[string, string,number][] = [[img, img, Date.now()]]
+                charemotions[currentChar.chaId] = emos
+                CharEmotion.set(charemotions)
+            }
+
+            return returnSdData
+        } catch (error) {
+            alertError(error)
+            return false
+        }
+    }
     return ''
 }

@@ -521,6 +521,32 @@ export function setDatabase(data:Database){
     data.translatorInputLanguage ??= 'auto'
     data.falModel ??= 'fal-ai/flux/dev'
     data.falLoraScale ??= 1
+    data.runpodConfig ??= {
+        endpointId: '',
+        apiKey: '',
+        timeout: 60,
+        width: 1024,
+        height: 1024,
+        num_inference_steps: 30,
+        guidance_scale: 7.5,
+        scheduler: 'DPMSolverMultistep',
+        seed_mode: 'random',
+        seed: 0,
+        num_images: 1,
+        lora_enabled: false,
+        loras: [],
+        face_detailer_enabled: false,
+        face_detailer: {
+            strength: 0.5,
+            confidence: 0.7,
+            padding: 0.1,
+            guidance_scale: 7.5,
+            num_inference_steps: 20,
+            blur_sigma: 0.0,
+            resolution: 512,
+            min_face_size: 20
+        }
+    }
     data.customCSS ??= ''
     data.strictJsonSchema ??= true
     data.statics ??= {
@@ -985,6 +1011,7 @@ export interface Database{
     falLora: string
     falLoraName: string
     falLoraScale: number
+    runpodConfig: RunpodConfig
     moduleIntergration: string
     customCSS: string
     betaMobileGUI:boolean
@@ -1624,6 +1651,41 @@ interface ComfyConfig{
     negNodeID: string,
     negInputName:string,
     timeout: number
+}
+
+interface RunpodConfig{
+    endpointId: string
+    apiKey: string
+    timeout: number
+    width: number
+    height: number
+    num_inference_steps: number
+    guidance_scale: number
+    scheduler: string
+    seed_mode: 'random' | 'fixed'
+    seed: number
+    num_images: number
+    lora_enabled: boolean
+    loras: RunpodLora[]
+    face_detailer_enabled: boolean
+    face_detailer: RunpodFaceDetailer
+}
+
+interface RunpodLora{
+    name: string
+    path: string
+    scale: number
+}
+
+interface RunpodFaceDetailer{
+    strength: number
+    confidence: number
+    padding: number
+    guidance_scale: number
+    num_inference_steps: number
+    blur_sigma: number
+    resolution: number
+    min_face_size: number
 }
 
 export type FormatingOrderItem = 'main'|'jailbreak'|'chats'|'lorebook'|'globalNote'|'authorNote'|'lastChat'|'description'|'postEverything'|'personaPrompt'

@@ -117,6 +117,7 @@
             <OptionInput value="fal" >Fal.ai</OptionInput>
             <OptionInput value="comfyui" >ComfyUI</OptionInput>
             <OptionInput value="Imagen" >Imagen</OptionInput>
+            <OptionInput value="runpod" >RunPod (Serverless)</OptionInput>
 
             <!-- Legacy -->
             {#if DBState.db.sdProvider === 'comfy'}
@@ -635,6 +636,133 @@
                 <OptionInput value="allow_adult" >Allow adult</OptionInput>
                 <OptionInput value="dont_allow" >Don't allow</OptionInput>
             </SelectInput>
+        {/if}
+
+        {#if DBState.db.sdProvider === 'runpod'}
+            <span class="text-textcolor mt-2">RunPod Endpoint ID</span>
+            <TextInput size="sm" marginBottom placeholder="your-endpoint-id" bind:value={DBState.db.runpodConfig.endpointId}/>
+
+            <span class="text-textcolor">RunPod API Key</span>
+            <TextInput size="sm" marginBottom placeholder="..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.runpodConfig.apiKey}/>
+
+            <span class="text-textcolor">Request Timeout (seconds)</span>
+            <NumberInput size="sm" marginBottom min={10} max={300} bind:value={DBState.db.runpodConfig.timeout}/>
+
+            <span class="text-textcolor mt-4">Width</span>
+            <NumberInput size="sm" marginBottom min={256} max={2048} bind:value={DBState.db.runpodConfig.width}/>
+
+            <span class="text-textcolor">Height</span>
+            <NumberInput size="sm" marginBottom min={256} max={2048} bind:value={DBState.db.runpodConfig.height}/>
+
+            <span class="text-textcolor">Inference Steps</span>
+            <NumberInput size="sm" marginBottom min={1} max={150} bind:value={DBState.db.runpodConfig.num_inference_steps}/>
+
+            <span class="text-textcolor">Guidance Scale</span>
+            <NumberInput size="sm" marginBottom min={1} max={20} bind:value={DBState.db.runpodConfig.guidance_scale}/>
+
+            <span class="text-textcolor">Scheduler</span>
+            <SelectInput className="mb-4" bind:value={DBState.db.runpodConfig.scheduler}>
+                <OptionInput value="PNDM" >PNDM</OptionInput>
+                <OptionInput value="KLMS" >KLMS</OptionInput>
+                <OptionInput value="DDIM" >DDIM</OptionInput>
+                <OptionInput value="K_EULER" >K_EULER</OptionInput>
+                <OptionInput value="K_EULER_ANCESTRAL" >K_EULER_ANCESTRAL</OptionInput>
+                <OptionInput value="DPMSolverMultistep" >DPMSolverMultistep</OptionInput>
+                <OptionInput value="DPMSolverSinglestep" >DPMSolverSinglestep</OptionInput>
+            </SelectInput>
+
+            <span class="text-textcolor">Seed Mode</span>
+            <SelectInput className="mb-4" bind:value={DBState.db.runpodConfig.seed_mode}>
+                <OptionInput value="random" >Random</OptionInput>
+                <OptionInput value="fixed" >Fixed</OptionInput>
+            </SelectInput>
+
+            {#if DBState.db.runpodConfig.seed_mode === 'fixed'}
+                <span class="text-textcolor">Seed</span>
+                <NumberInput size="sm" marginBottom min={0} max={2147483647} bind:value={DBState.db.runpodConfig.seed}/>
+            {/if}
+
+            <span class="text-textcolor">Number of Images</span>
+            <NumberInput size="sm" marginBottom min={1} max={4} bind:value={DBState.db.runpodConfig.num_images}/>
+
+            <div class="mt-4">
+                <Check bind:check={DBState.db.runpodConfig.lora_enabled} name="Enable LoRA"/>
+            </div>
+
+            {#if DBState.db.runpodConfig.lora_enabled}
+                <div class="mt-2 mb-4">
+                    <span class="text-textcolor mb-2 block">LoRA Models</span>
+                    {#each DBState.db.runpodConfig.loras as lora, i}
+                        <div class="border border-darkborderc rounded-md p-2 mb-2">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-textcolor2 text-sm">LoRA {i + 1}</span>
+                                <button 
+                                    onclick={() => {
+                                        DBState.db.runpodConfig.loras.splice(i, 1)
+                                        DBState.db.runpodConfig.loras = DBState.db.runpodConfig.loras
+                                    }}
+                                    class="text-draculared hover:text-red-700"
+                                >
+                                    <TrashIcon size={16}/>
+                                </button>
+                            </div>
+                            <span class="text-textcolor2 text-xs">Name (optional)</span>
+                            <TextInput size="sm" marginBottom placeholder="my_lora" bind:value={lora.name}/>
+                            <span class="text-textcolor2 text-xs">Path/URL</span>
+                            <TextInput size="sm" marginBottom placeholder="https://..." bind:value={lora.path}/>
+                            <span class="text-textcolor2 text-xs">Scale</span>
+                            <SliderInput min={0} max={2} step={0.1} fixed={1} bind:value={lora.scale}/>
+                        </div>
+                    {/each}
+                    <button 
+                        onclick={() => {
+                            DBState.db.runpodConfig.loras.push({
+                                name: '',
+                                path: '',
+                                scale: 1.0
+                            })
+                            DBState.db.runpodConfig.loras = DBState.db.runpodConfig.loras
+                        }}
+                        class="bg-selected hover:bg-selected/80 text-textcolor px-3 py-1 rounded-md text-sm flex items-center gap-1"
+                    >
+                        <PlusIcon size={14}/> Add LoRA
+                    </button>
+                </div>
+            {/if}
+
+            <div class="mt-4">
+                <Check bind:check={DBState.db.runpodConfig.face_detailer_enabled} name="Enable Face Detailer"/>
+            </div>
+
+            {#if DBState.db.runpodConfig.face_detailer_enabled}
+                <div class="mt-2 mb-4 border border-darkborderc rounded-md p-3">
+                    <span class="text-textcolor mb-2 block">Face Detailer Settings</span>
+                    
+                    <span class="text-textcolor2 text-xs">Strength</span>
+                    <SliderInput min={0} max={1} step={0.05} fixed={2} bind:value={DBState.db.runpodConfig.face_detailer.strength}/>
+                    
+                    <span class="text-textcolor2 text-xs">Confidence</span>
+                    <SliderInput min={0} max={1} step={0.05} fixed={2} bind:value={DBState.db.runpodConfig.face_detailer.confidence}/>
+                    
+                    <span class="text-textcolor2 text-xs">Padding</span>
+                    <SliderInput min={0} max={1} step={0.05} fixed={2} bind:value={DBState.db.runpodConfig.face_detailer.padding}/>
+                    
+                    <span class="text-textcolor2 text-xs">Guidance Scale</span>
+                    <NumberInput size="sm" marginBottom min={1} max={20} bind:value={DBState.db.runpodConfig.face_detailer.guidance_scale}/>
+                    
+                    <span class="text-textcolor2 text-xs">Inference Steps</span>
+                    <NumberInput size="sm" marginBottom min={1} max={150} bind:value={DBState.db.runpodConfig.face_detailer.num_inference_steps}/>
+                    
+                    <span class="text-textcolor2 text-xs">Blur Sigma</span>
+                    <SliderInput min={0} max={10} step={0.1} fixed={1} bind:value={DBState.db.runpodConfig.face_detailer.blur_sigma}/>
+                    
+                    <span class="text-textcolor2 text-xs">Resolution</span>
+                    <NumberInput size="sm" marginBottom min={128} max={2048} bind:value={DBState.db.runpodConfig.face_detailer.resolution}/>
+                    
+                    <span class="text-textcolor2 text-xs">Min Face Size</span>
+                    <NumberInput size="sm" marginBottom min={1} max={100} bind:value={DBState.db.runpodConfig.face_detailer.min_face_size}/>
+                </div>
+            {/if}
         {/if}
     </Arcodion>
 {/if}
